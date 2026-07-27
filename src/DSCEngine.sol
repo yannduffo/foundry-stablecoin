@@ -106,7 +106,7 @@ contract DSCEngine is ReentrancyGuard {
         _revertIfHealthFactorIsBroken(msg.sender);
         //actual mint :
         bool minted = i_DSC.mint(msg.sender, amountDSCToMint);
-        if(!minted) revert DSCEngine__MintFailed();
+        if (!minted) revert DSCEngine__MintFailed();
     }
 
     function burnDSC() external {}
@@ -164,7 +164,7 @@ contract DSCEngine is ReentrancyGuard {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
         (, int256 price,,,) = priceFeed.latestRoundData(); //price is return in 1000 * 1e8
 
-        if(price <= 0) revert DSGEngine__InvalidPrice();
+        if (price <= 0) revert DSGEngine__InvalidPrice();
 
         uint256 unsignedPrice = SafeCast.toUint256(price);
 
