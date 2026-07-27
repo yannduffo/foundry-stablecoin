@@ -8,7 +8,7 @@ import {DSCEngine} from "../../src/DSCEngine.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
-contract DSCEngineTest is Test{
+contract DSCEngineTest is Test {
     DeployDSC deployer;
     DecentralizedStableCoin dsc;
     DSCEngine dscEngine;
@@ -24,7 +24,7 @@ contract DSCEngineTest is Test{
     function setUp() public {
         deployer = new DeployDSC();
         (dsc, dscEngine, config) = deployer.run();
-        (ethUsdPriceFeed,,weth,) = config.activeNetworkConfig();
+        (ethUsdPriceFeed,, weth,) = config.activeNetworkConfig();
 
         ERC20Mock(weth).mint(user, STRATING_ERC20_BALANCE);
     }
