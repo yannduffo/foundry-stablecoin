@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 /**
@@ -26,10 +27,16 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeTheSameLength();
     error DSCEngine__NotAllowedToken();
     error DSCEngine__TransferFailed();
+    error DSCEngine__BreakHealthFactor(uint256 healthFactor);
+    error DSCEngine__MintFailed();
+    error DSGEngine__InvalidPrice();
 
     // ----------------------------- State variables -------------------------------
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
     uint256 private constant PRECISION = 1e18;
+    uint256 private constant LIQUIDATION_THRESHOLD = 50; //200% overcollateralized -> (to get 100DSC : 200$ of ETH * 50% = 100 // 100/100 = healthFactor limit)
+    uint256 private constant LIQUIDATION_PRECISION = 100;
+    uint256 private constant MIN_HEALTH_FACTOR = 1;
 
     mapping(address token => address priceFeed) private s_priceFeeds; //tokenToPriceFeed
     mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited;
@@ -64,7 +71,6 @@ contract DSCEngine is ReentrancyGuard {
             s_collateralTokens.push(tokenAddresses[i]); //filling our collateral token table
         }
         i_DSC = DecentralizedStableCoin(DSCAddress);
-
     }
 
     function depositCollateralAndMintDSC() external {}
@@ -98,6 +104,9 @@ contract DSCEngine is ReentrancyGuard {
     function mintDSC(uint256 amountDSCToMint) external moreThanZero(amountDSCToMint) nonReentrant {
         s_DSCMinted[msg.sender] += amountDSCToMint;
         _revertIfHealthFactorIsBroken(msg.sender);
+        //actual mint :
+        bool minted = i_DSC.mint(msg.sender, amountDSCToMint);
+        if(!minted) revert DSCEngine__MintFailed();
     }
 
     function burnDSC() external {}
@@ -124,20 +133,22 @@ contract DSCEngine is ReentrancyGuard {
      */
     function _healthFactor(address user) private view returns (uint256) {
         (uint256 totalDSCMinted, uint256 collateralValueInUSD) = _getAccountInformation(user);
+        uint256 collateralAdjustedForThreshold = (collateralValueInUSD) * LIQUIDATION_THRESHOLD / LIQUIDATION_PRECISION; // = 50% of collateralValueInUSD
+        return collateralAdjustedForThreshold * PRECISION / totalDSCMinted;
     }
 
     function _revertIfHealthFactorIsBroken(address user) internal view {
-        // 1. check Health Factor (do they have enough collateral)
-        // 2. revert if they don't
+        uint256 userHealthFactor = _healthFactor(user);
+        if (userHealthFactor < MIN_HEALTH_FACTOR) revert DSCEngine__BreakHealthFactor(userHealthFactor);
     }
 
     // ---------------------- Public & External View Func ---------------------------
     /**
-    * @notice Loop through collateral mapping and sum all entries $ value
-    * @param user The user adddres which we calculate collateral value
-    */
-    function getAccountCollateralValue(address user) public view returns(uint256 totalCollateralValueInUSD){
-        for(uint256 i=0; i < s_collateralTokens.length; i++){
+     * @notice Loop through collateral mapping and sum all entries $ value
+     * @param user The user adddres which we calculate collateral value
+     */
+    function getAccountCollateralValue(address user) public view returns (uint256 totalCollateralValueInUSD) {
+        for (uint256 i = 0; i < s_collateralTokens.length; i++) {
             //get token amount
             address token = s_collateralTokens[i];
             uint256 amount = s_collateralDeposited[user][token];
@@ -148,13 +159,16 @@ contract DSCEngine is ReentrancyGuard {
         return totalCollateralValueInUSD;
     }
 
-    function getUSDValue(address token, uint256 amount) public view returns(uint256){
+    function getUSDValue(address token, uint256 amount) public view returns (uint256) {
         //getting last price
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
         (, int256 price,,,) = priceFeed.latestRoundData(); //price is return in 1000 * 1e8
 
-        //converting (closely looking at the decimals) and returning
-        return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION; // (1e18 * 1e18) / 1e18 to stay in wei
+        if(price <= 0) revert DSGEngine__InvalidPrice();
 
+        uint256 unsignedPrice = SafeCast.toUint256(price);
+
+        //converting (closely looking at the decimals) and returning
+        return (unsignedPrice * ADDITIONAL_FEED_PRECISION * amount) / PRECISION; // (1e18 * 1e18) / 1e18 to stay in wei
     }
 }
