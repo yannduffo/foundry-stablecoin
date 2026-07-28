@@ -12,3 +12,7 @@ A stablecoin has 3 main properties :
 - Pegged to 1USD (using a Chainlink priceFeed to always exhange the good ETH or BTC amount for 1$ of our stablecoin)
 - Algorothmic (collateral minting)
 - Exogenous (wETH & wBTC as collateral)
+
+## Note about foundry : 
+- Foundry fuzz tests : stateless fuzz test -> random data over 1 function
+- Foundry invariant tests : statefull fuzz test -> random data & random function calls to many functions
