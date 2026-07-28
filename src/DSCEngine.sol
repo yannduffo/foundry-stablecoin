@@ -6,6 +6,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import {OracleLib} from "./librairies/OracleLib.sol";
 
 /**
  * @title DSCEngine
@@ -32,6 +33,9 @@ contract DSCEngine is ReentrancyGuard {
     error DSGEngine__InvalidPrice();
     error DSCEngine__HealthFactorIsOK();
     error DSCEngine__HeathFactorNotImproved();
+
+    // ---------------------------------- Types ------------------------------------
+    using OracleLib for AggregatorV3Interface;
 
     // ----------------------------- State variables -------------------------------
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
@@ -283,11 +287,15 @@ contract DSCEngine is ReentrancyGuard {
         (totalDSCMinted, collateralValueInUsd) = _getAccountInformation(user);
     }
 
-    function getCollateralTokens() external view returns(address[] memory){
+    function getCollateralTokens() external view returns (address[] memory) {
         return s_collateralTokens;
     }
 
-    function getCollateralBalanceOfUser(address user, address token) external view returns(uint256){
+    function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
         return s_collateralDeposited[user][token];
+    }
+
+    function getCollateralTokenPriceFeed(address token) external view returns (address) {
+        return s_priceFeeds[token];
     }
 }

@@ -13,7 +13,7 @@ import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {Handler} from "./Handler.t.sol";
 
-contract InvariantsTest is Test{
+contract InvariantsTest is Test {
     DeployDSC deployer;
     DSCEngine dsce;
     DecentralizedStableCoin dsc;
