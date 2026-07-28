@@ -260,7 +260,7 @@ contract DSCEngine is ReentrancyGuard {
 
     function getTokenAmountFromUsd(address token, uint256 usdAmountInWei) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
 
         // return ($e18 * 1e18) / ($e8 * 1e10)
         return (usdAmountInWei * PRECISION) / (SafeCast.toUint256(price) * ADDITIONAL_FEED_PRECISION);
@@ -285,7 +285,7 @@ contract DSCEngine is ReentrancyGuard {
     function getUSDValue(address token, uint256 amount) public view returns (uint256) {
         //getting last price
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
-        (, int256 price,,,) = priceFeed.latestRoundData(); //price is return in 1000 * 1e8
+        (, int256 price,,,) = priceFeed.staleCheckLatestRoundData(); //price is return in 1000 * 1e8
 
         if (price <= 0) revert DSGEngine__InvalidPrice();
 

@@ -1,29 +1,56 @@
-# Foundry stablecoin project
+# Foundry Stablecoin (DSC)
 
-## Technical def
+A minimal decentralized stablecoin pegged to 1 USD, inspired by MakerDAO/DAI — no governance, no fees.
 
-A stablecoin has 3 main properties : 
-- Relative Stability : Pegged/Anchored or Floating
-- Stability Mechanism : Governed or Alogorithmic
-- Collateral Type : Endogenous (collateral value from the same ecosystem) or Exogenous (collateral value existing outside of the stablecoin project)
+## Properties
 
-## Our choices for our stablecoin
+| Property | Choice |
+|---|---|
+| Stability | Pegged to USD (Chainlink price feeds) |
+| Mechanism | Algorithmic |
+| Collateral | Exogenous — wETH & wBTC |
+| Collateralization | 200% minimum (liquidation threshold at 50%) |
 
-- Pegged to 1USD (using a Chainlink priceFeed to always exhange the good ETH or BTC amount for 1$ of our stablecoin)
-- Algorothmic (collateral minting)
-- Exogenous (wETH & wBTC as collateral)
+## Contracts
 
-## Note about foundry : 
-- Foundry fuzz tests : stateless fuzz test -> random data over 1 function
-- Foundry invariant tests : statefull fuzz test -> random data & random function calls to many functions
+- **`DecentralizedStableCoin.sol`** — ERC20 token, owned and controlled by DSCEngine
+- **`DSCEngine.sol`** — core logic: deposit, mint, burn, redeem, liquidate
+- **`OracleLib.sol`** — wraps Chainlink `latestRoundData()` and reverts if price data is stale (> 3h)
 
-For invariants tests, we either use `fail_on_revert = true` or `fail_on_revert = false`. A better practice is to make 2 folders : `fuzz/continueOnRevert/` and  `fuzz/failOnRevert` so we don't mix them.
+## Commands
 
-## To do to clean project
+```bash
+forge build
+forge test
+forge test --match-contract DSCEngineTest -vv   # unit tests
+forge test --match-contract InvariantsTest -vv  # invariant tests
+```
 
-- Faire plus d'unit test
-- Finir les commentaires des fonctions
-- MAJ readme
+## Liquidation
 
-questions : 
-- comment est-ce qu'on halt le system si on a une stale dans le priceFeed : j'ai pas compris comment on influence le contrat (mais si je crois qu'on passe par la lib tout le temps mais jsplus ou)
+A position can be liquidated when its health factor drops below 1:
+
+```
+health factor = (collateral USD value × 50%) / DSC minted
+```
+
+Liquidators repay the debt and receive the collateral + 10% bonus.
+
+---
+
+## Learning notes
+
+**Stablecoin taxonomy**
+- *Relative stability*: pegged/anchored vs. floating
+- *Stability mechanism*: governed vs. algorithmic
+- *Collateral type*: endogenous (value from within the same ecosystem) vs. exogenous (value from outside — e.g. ETH, BTC)
+
+**Foundry testing**
+- *Fuzz tests* (stateless): random data fed into a single function
+- *Invariant tests* (stateful): random data + random function call sequences across the whole contract
+
+For invariant tests, prefer splitting into two folders rather than mixing configs:
+```
+test/fuzz/failOnRevert/
+test/fuzz/continueOnRevert/
+```
