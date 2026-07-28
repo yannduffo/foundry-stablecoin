@@ -13,6 +13,9 @@ contract Handler is Test{
     ERC20Mock weth;
     ERC20Mock wbtc;
 
+    uint256 public timesMintIsCalled;
+    address[] public usersWithCollateralDeposited;
+
     uint256 public constant MAX_DEPOSIT_SIZE = type(uint96).max;
 
     constructor(DSCEngine _dsce, DecentralizedStableCoin _dsc){
@@ -24,7 +27,23 @@ contract Handler is Test{
         wbtc = ERC20Mock(collateralTokens[1]);
     }
 
-    //redeem collateral
+    //to use with "fail_on_revert = false" (so we don't overnarrow it)
+    function mintDSC(uint256 amount, uint256 addressSeed) public {
+        if(usersWithCollateralDeposited.length == 0) return;
+        address sender = usersWithCollateralDeposited[addressSeed % usersWithCollateralDeposited.length];
+
+        (uint256 totalDSCMinted, uint256 collateralValueInUsd) = dsce.getAccountInformation(sender);
+        int256 maxDSCToMint = (int256(collateralValueInUsd) / 2) - int256(totalDSCMinted);
+        if(maxDSCToMint < 0) return;
+        amount = bound(amount, 0, uint256(maxDSCToMint));
+        if(amount == 0) return;
+
+        vm.startPrank(sender);
+        dsce.mintDSC(amount);
+        vm.stopPrank();
+        timesMintIsCalled++;
+    }
+
     function depositCollateral(uint256 collateralSeed, uint256 amountCollateral) public{
         ERC20Mock collateral = _getCollateralFromSeed(collateralSeed);
         amountCollateral = bound(amountCollateral,1, MAX_DEPOSIT_SIZE);
@@ -34,6 +53,19 @@ contract Handler is Test{
         collateral.approve(address(dsce), amountCollateral);
         dsce.depositCollateral(address(collateral), amountCollateral);
         vm.stopPrank();
+        usersWithCollateralDeposited.push(msg.sender); //could double push
+    }
+
+    function redeemCollateral(uint256 collateralSeed, uint256 amountCollateral) public {
+        ERC20Mock collateral = _getCollateralFromSeed(collateralSeed);
+        uint256 maxCollateralToRedeem = dsce.getCollateralBalanceOfUser(msg.sender, address(collateral));
+
+        //here we don't check if a user try to redeem more than he should be able too : fuzz test doesnt implicitly mean we test all cases
+        amountCollateral = bound(amountCollateral, 0, maxCollateralToRedeem);
+        if(amountCollateral==0) return;
+
+        vm.prank(msg.sender);
+        dsce.redeemCollateral(address(collateral), amountCollateral);
     }
 
     // ----------------------------------

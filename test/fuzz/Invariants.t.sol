@@ -5,7 +5,7 @@ pragma solidity ^0.8.19;
 /// -> The total supply of DSC should be less than the total value of collateral
 /// -> Getter view function should never revert <- evergreen invariant
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {DeployDSC} from "../../script/DeployDSC.s.sol";
 import {DSCEngine} from "../../src/DSCEngine.sol";
 import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
@@ -39,6 +39,12 @@ contract InvariantsTest is Test{
         uint256 wethValue = dsce.getUSDValue(weth, totalWethDeposited);
         uint256 wbtcValue = dsce.getUSDValue(wbtc, totalWbtcDeposited);
 
+        console.log("Times mint called : ", handler.timesMintIsCalled());
+
         assert(wethValue + wbtcValue >= totalSupply);
+    }
+
+    function invariant_gettersShouldNotRevert() public view {
+        dsce.getCollateralTokens();
     }
 }

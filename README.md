@@ -16,3 +16,5 @@ A stablecoin has 3 main properties :
 ## Note about foundry : 
 - Foundry fuzz tests : stateless fuzz test -> random data over 1 function
 - Foundry invariant tests : statefull fuzz test -> random data & random function calls to many functions
+
+For invariants tests, we either use `fail_on_revert = true` or `fail_on_revert = false`. A better practice is to make 2 folders : `fuzz/continueOnRevert/` and  `fuzz/failOnRevert` so we don't mix them.
