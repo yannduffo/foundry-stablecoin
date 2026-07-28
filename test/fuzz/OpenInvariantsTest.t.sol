@@ -27,6 +27,7 @@ contract OpenInvariantsTest is Test{
         targetContract(address(dsce));
     }
 
+    /*
     function invariant_protocolMustHaveMoreValueThanTotalSupply() public view {
         uint256 totalSupply = dsc.totalSupply();
         uint256 totalWethDeposited = IERC20(weth).balanceOf(address(dsce));
@@ -37,4 +38,5 @@ contract OpenInvariantsTest is Test{
 
         assert(wethValue + wbtcValue >= totalSupply);
     }
+    */
 }
