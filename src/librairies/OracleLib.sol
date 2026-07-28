@@ -24,7 +24,7 @@ library OracleLib {
             priceFeed.latestRoundData();
 
         uint256 secondsSince = block.timestamp - updatedAt;
-        if(secondsSince > TIMEOUT) revert OrableLib__StalePrice();
-        return(roundId, answer, startedAt, updatedAt, answeredInRound);
+        if (secondsSince > TIMEOUT) revert OrableLib__StalePrice();
+        return (roundId, answer, startedAt, updatedAt, answeredInRound);
     }
 }

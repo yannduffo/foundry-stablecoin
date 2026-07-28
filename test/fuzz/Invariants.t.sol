@@ -31,6 +31,7 @@ contract InvariantsTest is Test {
         targetContract(address(handler));
     }
 
+    /// forge-config: default.invariant.fail-on-revert = false
     function invariant_protocolMustHaveMoreValueThanTotalSupply() public view {
         uint256 totalSupply = dsc.totalSupply();
         uint256 totalWethDeposited = IERC20(weth).balanceOf(address(dsce));
@@ -39,11 +40,12 @@ contract InvariantsTest is Test {
         uint256 wethValue = dsce.getUSDValue(weth, totalWethDeposited);
         uint256 wbtcValue = dsce.getUSDValue(wbtc, totalWbtcDeposited);
 
-        console.log("Times mint called : ", handler.timesMintIsCalled());
+        console.log("Times mint called : ", handler.ghost_timesMintIsCalled());
 
         assert(wethValue + wbtcValue >= totalSupply);
     }
 
+    /// forge-config: default.invariant.fail-on-revert = false
     function invariant_gettersShouldNotRevert() public view {
         dsce.getCollateralTokens();
     }

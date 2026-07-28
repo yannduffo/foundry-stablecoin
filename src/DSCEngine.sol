@@ -42,7 +42,7 @@ contract DSCEngine is ReentrancyGuard {
     uint256 private constant PRECISION = 1e18;
     uint256 private constant LIQUIDATION_THRESHOLD = 50; //200% overcollateralized -> (to get 100DSC : 200$ of ETH * 50% = 100 // 100/100 = healthFactor limit)
     uint256 private constant LIQUIDATION_PRECISION = 100;
-    uint256 private constant MIN_HEALTH_FACTOR = 1;
+    uint256 private constant MIN_HEALTH_FACTOR = 1e18;
     uint256 private constant LIQUIDATION_BONUS = 10; //10% bonus
 
     mapping(address token => address priceFeed) private s_priceFeeds; //tokenToPriceFeed
@@ -231,8 +231,16 @@ contract DSCEngine is ReentrancyGuard {
      */
     function _healthFactor(address user) private view returns (uint256) {
         (uint256 totalDSCMinted, uint256 collateralValueInUSD) = _getAccountInformation(user);
+        return _calculateHealthFactor(totalDSCMinted, collateralValueInUSD);
+    }
+
+    function _calculateHealthFactor(uint256 totalDSCMinted, uint256 collateralValueInUsd)
+        internal
+        pure
+        returns (uint256)
+    {
         if (totalDSCMinted == 0) return type(uint256).max;
-        uint256 collateralAdjustedForThreshold = (collateralValueInUSD) * LIQUIDATION_THRESHOLD / LIQUIDATION_PRECISION; // = 50% of collateralValueInUSD
+        uint256 collateralAdjustedForThreshold = (collateralValueInUsd) * LIQUIDATION_THRESHOLD / LIQUIDATION_PRECISION; // = 50% of collateralValueInUSD
         return collateralAdjustedForThreshold * PRECISION / totalDSCMinted;
     }
 
@@ -242,6 +250,14 @@ contract DSCEngine is ReentrancyGuard {
     }
 
     // ---------------------- Public & External View Func ---------------------------
+    function calculateHealthFactor(uint256 totalDscMinted, uint256 collateralValueInUsd)
+        external
+        pure
+        returns (uint256)
+    {
+        return _calculateHealthFactor(totalDscMinted, collateralValueInUsd);
+    }
+
     function getTokenAmountFromUsd(address token, uint256 usdAmountInWei) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
         (, int256 price,,,) = priceFeed.latestRoundData();
@@ -297,5 +313,13 @@ contract DSCEngine is ReentrancyGuard {
 
     function getCollateralTokenPriceFeed(address token) external view returns (address) {
         return s_priceFeeds[token];
+    }
+
+    function getPrecision() external pure returns (uint256) {
+        return PRECISION;
+    }
+
+    function getAdditionalFeedPrecision() external pure returns (uint256) {
+        return ADDITIONAL_FEED_PRECISION;
     }
 }
