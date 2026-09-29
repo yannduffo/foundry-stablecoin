@@ -71,7 +71,7 @@ contract DSCEngine is ReentrancyGuard {
     }
 
     // --------------------------------- Functions ---------------------------------
-    // ------------------------------ External Func --------------------------------
+    // ------------------------------- constructor  --------------------------------
     constructor(address[] memory tokenAddresses, address[] memory priceFeedAddresses, address DSCAddress) {
         if (tokenAddresses.length != priceFeedAddresses.length) {
             revert DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeTheSameLength();
@@ -83,6 +83,7 @@ contract DSCEngine is ReentrancyGuard {
         i_DSC = DecentralizedStableCoin(DSCAddress);
     }
 
+    // ------------------------------ External Func --------------------------------
     /**
      * @param tokenCollateralAddress Address of token to deposit
      * @param amountCollateral Amount of collateral to deposit

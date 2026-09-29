@@ -2,8 +2,10 @@
 pragma solidity ^0.8.19;
 
 /// What should be our invariants ?
-/// -> The total supply of DSC should be less than the total value of collateral
-/// -> Getter view function should never revert <- evergreen invariant
+/// -> The total value of collateral should always be greater than the total supply of DSC
+/// -> The collateral recorded by the engine should always match the tokens it actually holds
+/// -> Every DSC in circulation should be backed by a user debt
+/// -> Without price changes, no user should ever be below the minimum health factor
 
 import {Test} from "forge-std/Test.sol";
 
@@ -30,11 +32,12 @@ contract InvariantsTest is Test {
         //creating handler
         handler = new Handler(dscEngine, dsc);
 
-        //targetContract(address(dscEngine)); <- for openinvariants
         targetContract(address(handler));
+        //the engine can't be a user of itself
+        excludeSender(address(dscEngine));
     }
 
-    /// forge-config: default.invariant.fail-on-revert = false
+    //1st and most important invariant
     function invariant_protocolMustHaveMoreValueThanTotalSupply() public view {
         uint256 totalSupply = dsc.totalSupply();
         uint256 totalWethDeposited = IERC20(weth).balanceOf(address(dscEngine));
@@ -46,8 +49,40 @@ contract InvariantsTest is Test {
         assert(wethValue + wbtcValue >= totalSupply);
     }
 
-    /// forge-config: default.invariant.fail-on-revert = false
-    function invariant_gettersShouldNotRevert() public view {
-        dscEngine.getCollateralTokens();
+    //to check if the internal accounting is keeping good counts
+    function invariant_collateralAccountingMatchesBalances() public view {
+        address[] memory users = handler.getUserWithCollateralDeposited();
+        uint256 sumWethDeposited;
+        uint256 sumWbtcDeposited;
+
+        for (uint256 i = 0; i < users.length; i++) {
+            sumWethDeposited += dscEngine.getCollateralBalanceOfUser(users[i], weth);
+            sumWbtcDeposited += dscEngine.getCollateralBalanceOfUser(users[i], wbtc);
+        }
+
+        assertEq(sumWethDeposited, IERC20(weth).balanceOf(address(dscEngine)));
+        assertEq(sumWbtcDeposited, IERC20(wbtc).balanceOf(address(dscEngine)));
+    }
+
+    // same as before we have to check that our internal arithmetic stays conscistant
+    // with external token contracts
+    function invariant_totalMintedMatchesTotalSupply() public view {
+        address[] memory users = handler.getUserWithCollateralDeposited();
+        uint256 sumDSCMinted;
+        for (uint256 i = 0; i < users.length; i++) {
+            (uint256 totalDSCMinted,) = dscEngine.getAccountInformation(users[i]);
+            sumDSCMinted += totalDSCMinted;
+        }
+
+        assertEq(sumDSCMinted, dsc.totalSupply());
+    }
+
+    // in a "passive state", users should keep an helathy status
+    function invariant_usersAreAlwaysHealthy() public view {
+        address[] memory users = handler.getUserWithCollateralDeposited();
+        for (uint256 i = 0; i < users.length; i++) {
+            //witout price changing, users must always be healthy
+            assertGe(dscEngine.getHealthFactor(users[i]), 1e18);
+        }
     }
 }

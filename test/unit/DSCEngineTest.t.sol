@@ -302,6 +302,27 @@ contract DSCEngineTest is Test {
         assertEq(ERC20Mock(weth).balanceOf(liquidator), expectedWeth);
     }
 
+    function testFuzzLiquidationClearsDebtAndPaysBonus(uint256 crashedPrice) public depositCollateralAndMintDSC {
+        // below $20 the user is liquidatable, above $11 the collateral still covers debt + 10% bonus
+        crashedPrice = bound(crashedPrice, 11e8, 19e8);
+        MockV3Aggregator(ethUsdPriceFeed).updateAnswer(SafeCast.toInt256(crashedPrice));
+
+        ERC20Mock(weth).mint(liquidator, COLLATERAL_TO_COVER);
+        vm.startPrank(liquidator);
+        ERC20Mock(weth).approve(address(dscEngine), COLLATERAL_TO_COVER);
+        dscEngine.depositCollateralAndMintDSC(weth, COLLATERAL_TO_COVER, AMOUNT_TO_MINT);
+        dsc.approve(address(dscEngine), AMOUNT_TO_MINT);
+        dscEngine.liquidate(weth, user, AMOUNT_TO_MINT);
+        vm.stopPrank();
+
+        (uint256 userDscMinted,) = dscEngine.getAccountInformation(user);
+        assertEq(userDscMinted, 0);
+
+        uint256 expectedCovered = dscEngine.getTokenAmountFromUsd(weth, AMOUNT_TO_MINT);
+        uint256 expectedWeth = expectedCovered + (expectedCovered * 10 / 100);
+        assertEq(ERC20Mock(weth).balanceOf(liquidator), expectedWeth);
+    }
+
     // ------------------------------ oracle down reaction ----------------------------
     function testRevertsIfPriceIsStale() public {
         vm.warp(block.timestamp + 3 hours + 1);
