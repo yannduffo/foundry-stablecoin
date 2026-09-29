@@ -1,4 +1,4 @@
-//SPDX-License-Identifier : MIT
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
 import {Test} from "forge-std/Test.sol";
@@ -56,7 +56,6 @@ contract DSCEngineTest is Test {
     }
 
     // -------------------------- Price tests --------------------------
-    //right now only working for Anvil deployment
     function testGetUsdValue() public view {
         //the test : 15ETH * 2000$/ETH = $30000e18
         uint256 ethAmount = 15 ether;
@@ -172,7 +171,7 @@ contract DSCEngineTest is Test {
         vm.startPrank(user);
         ERC20Mock(weth).approve(address(dscEngine), AMOUNT_COLLATERAL);
 
-        vm.expectEmit(true, true, true, false, address(dscEngine));
+        vm.expectEmit(true, true, false, true, address(dscEngine));
         emit DSCEngine.CollateralDeposited(user, weth, AMOUNT_COLLATERAL);
         dscEngine.depositCollateral(weth, AMOUNT_COLLATERAL);
         vm.stopPrank();
@@ -238,7 +237,8 @@ contract DSCEngineTest is Test {
         // 10 ETH * $2000 = $20000 collateral, 100 DSC minted
         // ($20000 * 50 / 100) * 1e18 / 100 = 100e18
         uint256 expectedHealthFactor = 100 ether;
-        uint256 healthFactor = dscEngine.calculateHealthFactor(AMOUNT_TO_MINT, dscEngine.getUSDValue(weth, AMOUNT_COLLATERAL));
+        uint256 healthFactor =
+            dscEngine.calculateHealthFactor(AMOUNT_TO_MINT, dscEngine.getUSDValue(weth, AMOUNT_COLLATERAL));
         assertEq(healthFactor, expectedHealthFactor);
     }
 
@@ -320,7 +320,6 @@ contract DSCEngineTest is Test {
         dscEngine.getTokenAmountFromUsd(weth, 1 ether);
     }
 
-
     // -------------------------------- getter tests -------------------------------
     function testGetCollateralTokens() public view {
         address[] memory collateralTokens = dscEngine.getCollateralTokens();
@@ -336,8 +335,7 @@ contract DSCEngineTest is Test {
     }
 
     function testGetHealthFactorForCaller() public depositCollateralAndMintDSC {
-        vm.prank(user);
-        uint256 healthFactor = dscEngine.getHealthFactor();
+        uint256 healthFactor = dscEngine.getHealthFactor(user);
 
         assertEq(healthFactor, 100 ether);
     }

@@ -53,7 +53,7 @@ contract DSCEngine is ReentrancyGuard {
     DecentralizedStableCoin private immutable i_DSC;
 
     // ---------------------------------- Events -----------------------------------
-    event CollateralDeposited(address indexed user, address indexed token, uint256 indexed amount);
+    event CollateralDeposited(address indexed user, address indexed token, uint256 amount);
     event CollateralRedeemed(
         address indexed redeemedFrom, address indexed redeemedTo, address indexed token, uint256 amount
     );
@@ -154,7 +154,7 @@ contract DSCEngine is ReentrancyGuard {
 
     function burnDSC(uint256 amount) public moreThanZero(amount) {
         _burnDSC(amount, msg.sender, msg.sender);
-        _revertIfHealthFactorIsBroken(msg.sender); //we will see if it's usefull
+        _revertIfHealthFactorIsBroken(msg.sender);
     }
 
     /**
@@ -191,8 +191,8 @@ contract DSCEngine is ReentrancyGuard {
         _revertIfHealthFactorIsBroken(msg.sender); //also checking liquidator HF
     }
 
-    function getHealthFactor() external view returns(uint256) {
-        return _healthFactor(msg.sender);
+    function getHealthFactor(address user) external view returns (uint256) {
+        return _healthFactor(user);
     }
 
     // --------------------- Private & Internal View Func ---------------------------

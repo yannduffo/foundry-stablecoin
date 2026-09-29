@@ -5,7 +5,7 @@ pragma solidity ^0.8.19;
 /// -> The total supply of DSC should be less than the total value of collateral
 /// -> Getter view function should never revert <- evergreen invariant
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 import {DeployDSC} from "../../script/DeployDSC.s.sol";
 import {DSCEngine} from "../../src/DSCEngine.sol";
@@ -42,8 +42,6 @@ contract InvariantsTest is Test {
 
         uint256 wethValue = dscEngine.getUSDValue(weth, totalWethDeposited);
         uint256 wbtcValue = dscEngine.getUSDValue(wbtc, totalWbtcDeposited);
-
-        console.log("Times mint called : ", handler.ghost_timesMintIsCalled());
 
         assert(wethValue + wbtcValue >= totalSupply);
     }

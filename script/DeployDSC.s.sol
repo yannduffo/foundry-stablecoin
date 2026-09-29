@@ -9,11 +9,11 @@ import {DSCEngine} from "../src/DSCEngine.sol";
 import {MockV3Aggregator} from "@chainlink/contracts/src/v0.8/shared/mocks/MockV3Aggregator.sol";
 
 /**
-* @title DeployDSC contract
-* @author Yann Duffo
-* @notice This script deploy a simple local DSC infrastructure :
-*         (DSC token + engine + 2 mock tokens + 2 mock price feeds)
-*/
+ * @title DeployDSC contract
+ * @author Yann Duffo
+ * @notice This script deploy a simple local DSC infrastructure :
+ *         (DSC token + engine + 2 mock tokens + 2 mock price feeds)
+ */
 contract DeployDSC is Script {
     error DeployDSC__LocalOnly();
 
@@ -22,7 +22,7 @@ contract DeployDSC is Script {
     int256 private constant BTC_USD_PRICE = 50000e8;
 
     function run() external returns (DecentralizedStableCoin dsc, DSCEngine engine, address weth, address wbtc) {
-        if(block.chainid != 31337) revert DeployDSC__LocalOnly();
+        if (block.chainid != 31337) revert DeployDSC__LocalOnly();
 
         vm.startBroadcast();
         //creating weth & wbtc mocks
