@@ -6,39 +6,42 @@ pragma solidity ^0.8.19;
 /// -> Getter view function should never revert <- evergreen invariant
 
 import {Test, console} from "forge-std/Test.sol";
+
 import {DeployDSC} from "../../script/DeployDSC.s.sol";
 import {DSCEngine} from "../../src/DSCEngine.sol";
 import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
-import {HelperConfig} from "../../script/HelperConfig.s.sol";
-import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {Handler} from "./Handler.t.sol";
+
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 contract InvariantsTest is Test {
     DeployDSC deployer;
-    DSCEngine dsce;
+    DSCEngine dscEngine;
     DecentralizedStableCoin dsc;
-    HelperConfig config;
+    Handler handler;
+
     address weth;
     address wbtc;
-    Handler handler;
 
     function setUp() external {
         deployer = new DeployDSC();
-        (dsc, dsce, config) = deployer.run();
-        (,, weth, wbtc) = config.activeNetworkConfig();
-        //targetContract(address(dsce)); <- for openinvariants
-        handler = new Handler(dsce, dsc);
+        (dsc, dscEngine, weth, wbtc) = deployer.run();
+
+        //creating handler
+        handler = new Handler(dscEngine, dsc);
+
+        //targetContract(address(dscEngine)); <- for openinvariants
         targetContract(address(handler));
     }
 
     /// forge-config: default.invariant.fail-on-revert = false
     function invariant_protocolMustHaveMoreValueThanTotalSupply() public view {
         uint256 totalSupply = dsc.totalSupply();
-        uint256 totalWethDeposited = IERC20(weth).balanceOf(address(dsce));
-        uint256 totalWbtcDeposited = IERC20(wbtc).balanceOf(address(dsce));
+        uint256 totalWethDeposited = IERC20(weth).balanceOf(address(dscEngine));
+        uint256 totalWbtcDeposited = IERC20(wbtc).balanceOf(address(dscEngine));
 
-        uint256 wethValue = dsce.getUSDValue(weth, totalWethDeposited);
-        uint256 wbtcValue = dsce.getUSDValue(wbtc, totalWbtcDeposited);
+        uint256 wethValue = dscEngine.getUSDValue(weth, totalWethDeposited);
+        uint256 wbtcValue = dscEngine.getUSDValue(wbtc, totalWbtcDeposited);
 
         console.log("Times mint called : ", handler.ghost_timesMintIsCalled());
 
@@ -47,6 +50,6 @@ contract InvariantsTest is Test {
 
     /// forge-config: default.invariant.fail-on-revert = false
     function invariant_gettersShouldNotRevert() public view {
-        dsce.getCollateralTokens();
+        dscEngine.getCollateralTokens();
     }
 }

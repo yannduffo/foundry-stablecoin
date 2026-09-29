@@ -2,23 +2,24 @@
 pragma solidity ^0.8.19;
 
 import {Test} from "forge-std/Test.sol";
+
 import {DeployDSC} from "../../script/DeployDSC.s.sol";
 import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
 import {DSCEngine} from "../../src/DSCEngine.sol";
-import {HelperConfig} from "../../script/HelperConfig.s.sol";
+
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {MockV3Aggregator} from "../mocks/MockV3Aggregator.sol";
+import {MockV3Aggregator} from "@chainlink/contracts/src/v0.8/shared/mocks/MockV3Aggregator.sol";
 
 contract DSCEngineTest is Test {
     DeployDSC deployer;
     DecentralizedStableCoin dsc;
     DSCEngine dscEngine;
-    HelperConfig config;
 
     address ethUsdPriceFeed;
     address btcUsdPriceFeed;
     address weth;
+    address wbtc;
 
     address public user = makeAddr("user");
     address public liquidator = makeAddr("liquidator");
@@ -28,10 +29,15 @@ contract DSCEngineTest is Test {
     uint256 public constant COLLATERAL_TO_COVER = 20 ether;
 
     function setUp() public {
+        //deploy the infrastructure
         deployer = new DeployDSC();
-        (dsc, dscEngine, config) = deployer.run();
-        (ethUsdPriceFeed, btcUsdPriceFeed, weth,) = config.activeNetworkConfig();
+        (dsc, dscEngine, weth, wbtc) = deployer.run();
 
+        //getting feeds addresses
+        ethUsdPriceFeed = dscEngine.getCollateralTokenPriceFeed(weth);
+        btcUsdPriceFeed = dscEngine.getCollateralTokenPriceFeed(wbtc);
+
+        //minting some token to get ready
         ERC20Mock(weth).mint(user, STRATING_ERC20_BALANCE);
     }
 
