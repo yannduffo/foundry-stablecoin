@@ -11,7 +11,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
  * -> If Chainlink network goes down, it's bad
  */
 library OracleLib {
-    error OrableLib__StalePrice();
+    error OracleLib__StalePrice();
 
     uint256 private constant TIMEOUT = 3 hours;
 
@@ -24,7 +24,7 @@ library OracleLib {
             priceFeed.latestRoundData();
 
         uint256 secondsSince = block.timestamp - updatedAt;
-        if (secondsSince > TIMEOUT) revert OrableLib__StalePrice();
+        if (secondsSince > TIMEOUT) revert OracleLib__StalePrice();
         return (roundId, answer, startedAt, updatedAt, answeredInRound);
     }
 }

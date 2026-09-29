@@ -19,7 +19,7 @@ import {OracleLib} from "./librairies/OracleLib.sol";
  * DSC system should always be overcollateralized (never should value(collateral) < value(all DSC))
  *
  * @notice : This contract is the core of DSC system. It handle all the logic for mining and redeeming DSC as well as depositing & withdrawing collateral.
- * @notice : based on MakerDAO (DAI) system.
+ * @notice : inpired by on MakerDAO DAI system.
  *
  */
 contract DSCEngine is ReentrancyGuard {
@@ -30,7 +30,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TransferFailed();
     error DSCEngine__BreakHealthFactor(uint256 healthFactor);
     error DSCEngine__MintFailed();
-    error DSGEngine__InvalidPrice();
+    error DSCEngine__InvalidPrice();
     error DSCEngine__HealthFactorIsOK();
     error DSCEngine__HeathFactorNotImproved();
 
@@ -191,7 +191,9 @@ contract DSCEngine is ReentrancyGuard {
         _revertIfHealthFactorIsBroken(msg.sender); //also checking liquidator HF
     }
 
-    function getHealthFactor() external view {}
+    function getHealthFactor() external view returns(uint256) {
+        return _healthFactor(msg.sender);
+    }
 
     // --------------------- Private & Internal View Func ---------------------------
     function _redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral, address from, address to)
@@ -262,6 +264,8 @@ contract DSCEngine is ReentrancyGuard {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
         (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
 
+        if (price <= 0) revert DSCEngine__InvalidPrice();
+
         // return ($e18 * 1e18) / ($e8 * 1e10)
         return (usdAmountInWei * PRECISION) / (SafeCast.toUint256(price) * ADDITIONAL_FEED_PRECISION);
     }
@@ -287,7 +291,7 @@ contract DSCEngine is ReentrancyGuard {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
         (, int256 price,,,) = priceFeed.staleCheckLatestRoundData(); //price is return in 1000 * 1e8
 
-        if (price <= 0) revert DSGEngine__InvalidPrice();
+        if (price <= 0) revert DSCEngine__InvalidPrice();
 
         uint256 unsignedPrice = SafeCast.toUint256(price);
 

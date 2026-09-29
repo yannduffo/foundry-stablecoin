@@ -10,6 +10,7 @@ import {DSCEngine} from "../../src/DSCEngine.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {MockV3Aggregator} from "@chainlink/contracts/src/v0.8/shared/mocks/MockV3Aggregator.sol";
+import {OracleLib} from "../../src/librairies/OracleLib.sol";
 
 contract DSCEngineTest is Test {
     DeployDSC deployer;
@@ -301,6 +302,25 @@ contract DSCEngineTest is Test {
         assertEq(ERC20Mock(weth).balanceOf(liquidator), expectedWeth);
     }
 
+    // ------------------------------ oracle down reaction ----------------------------
+    function testRevertsIfPriceIsStale() public {
+        vm.warp(block.timestamp + 3 hours + 1);
+
+        vm.expectRevert(OracleLib.OracleLib__StalePrice.selector);
+        dscEngine.getUSDValue(weth, 1 ether);
+    }
+
+    function testRevertsIfPriceIsZero() public {
+        MockV3Aggregator(ethUsdPriceFeed).updateAnswer(0);
+
+        vm.expectRevert(DSCEngine.DSCEngine__InvalidPrice.selector);
+        dscEngine.getUSDValue(weth, 1 ether);
+
+        vm.expectRevert(DSCEngine.DSCEngine__InvalidPrice.selector);
+        dscEngine.getTokenAmountFromUsd(weth, 1 ether);
+    }
+
+
     // -------------------------------- getter tests -------------------------------
     function testGetCollateralTokens() public view {
         address[] memory collateralTokens = dscEngine.getCollateralTokens();
@@ -313,5 +333,12 @@ contract DSCEngineTest is Test {
 
     function testGetPrecision() public view {
         assertEq(dscEngine.getPrecision(), 1e18);
+    }
+
+    function testGetHealthFactorForCaller() public depositCollateralAndMintDSC {
+        vm.prank(user);
+        uint256 healthFactor = dscEngine.getHealthFactor();
+
+        assertEq(healthFactor, 100 ether);
     }
 }

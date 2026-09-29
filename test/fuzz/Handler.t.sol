@@ -2,8 +2,10 @@
 pragma solidity ^0.8.19;
 
 import {Test} from "forge-std/Test.sol";
+
 import {DSCEngine} from "../../src/DSCEngine.sol";
 import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
+
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {MockV3Aggregator} from "@chainlink/contracts/src/v0.8/shared/mocks/MockV3Aggregator.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
@@ -17,7 +19,6 @@ contract Handler is Test {
 
     uint256 public ghost_timesMintIsCalled; //ghost variable used here
     address[] public usersWithCollateralDeposited;
-    MockV3Aggregator public ethUsdPriceFeed;
 
     uint256 public constant MAX_DEPOSIT_SIZE = type(uint96).max;
 
@@ -28,8 +29,6 @@ contract Handler is Test {
         address[] memory collateralTokens = dsce.getCollateralTokens();
         weth = ERC20Mock(collateralTokens[0]);
         wbtc = ERC20Mock(collateralTokens[1]);
-
-        ethUsdPriceFeed = MockV3Aggregator(dsce.getCollateralTokenPriceFeed(address(weth)));
     }
 
     function mintDSC(uint256 amount, uint256 addressSeed) public {
@@ -71,11 +70,6 @@ contract Handler is Test {
         vm.prank(msg.sender);
         dsce.redeemCollateral(address(collateral), amountCollateral);
     }
-
-    // function updateCollateralPrice(uint96 newPrice) public {
-    //     int256 newPriceInt = int256(uint256(newPrice));
-    //     ethUsdPriceFeed.updateAnswer(newPriceInt);
-    // }
 
     // ----------------------------------
     //----------------- Helper functions
